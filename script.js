@@ -66,7 +66,32 @@ function releaseJoystick() {
   joystickVec.y = 0;
 }
 
-joystick.addEventListener('touchstart', (e) => { rect = joystick.getBoundingClientRect(); handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+let joystickSoundPlayed = false;
+
+
+
+joystick.addEventListener('touchstart', (e) => {
+  rect = joystick.getBoundingClientRect();
+  handlePointer(e.touches[0].clientX, e.touches[0].clientY);
+  
+  if (!joystickSoundPlayed) {
+    joystickSound.play().catch(() => {}); // play on first interaction
+    joystickSoundPlayed = true;
+  }
+
+  e.preventDefault();
+});
+
+joystick.addEventListener('pointerdown', (e) => {
+  rect = joystick.getBoundingClientRect();
+  joystick.setPointerCapture(e.pointerId);
+  handlePointer(e.clientX, e.clientY);
+
+  if (!joystickSoundPlayed) {
+    joystickSound.play().catch(() => {});
+    joystickSoundPlayed = true;
+  }
+});
 joystick.addEventListener('touchmove', (e) => { handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
 joystick.addEventListener('touchend', (e) => { releaseJoystick(); e.preventDefault(); });
 
@@ -95,9 +120,9 @@ engine.runRenderLoop(() => {
 
 
 // Pointer lock setup
-const pointerSound = new Audio("assets/sound.mp3");
-pointerSound.preload = "auto";
-pointerSound.volume = 0.8;
+const joystickSound = new Audio("assets/sound.mp3");
+joystickSound.preload = "auto";
+joystickSound.volume = 0.8;
 const doorSound = new Audio("assets/menenazzarafateliyin.mp3");
 doorSound.preload = "auto";
 doorSound.volume = 1;
@@ -106,16 +131,9 @@ canvas.addEventListener("click", () => {
   const el = document.pointerLockElement;
   if (el !== canvas) {
     canvas.requestPointerLock();
-    pointerSound.play().catch(() => {});
   }
 });
 
-function _onPointerLockChange() {
-  const el = document.pointerLockElement;
-  if (el === canvas) pointerSound.play().catch(() => {});
-  else { try { pointerSound.pause(); pointerSound.currentTime = 0; } catch (e) {} }
-}
-document.addEventListener("pointerlockchange", _onPointerLockChange);
 
 // WASD movement keys
 camera.keysUp = [87];
