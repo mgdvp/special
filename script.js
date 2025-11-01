@@ -16,6 +16,84 @@ camera.angularSensibilityY = 1000;
 camera.cameraAcceleration = 0;
 camera.attachControl(canvas, true);
 
+// --- Virtual joystick ---
+const joystick = document.createElement('div');
+Object.assign(joystick.style, {
+  position: 'absolute',
+  left: '36px',
+  bottom: '36px',
+  width: '140px',
+  height: '140px',
+  borderRadius: '50%',
+  background: 'rgba(0,0,0,0.25)',
+  touchAction: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: '1000'
+});
+const knob = document.createElement('div');
+Object.assign(knob.style, {
+  width: '56px',
+  height: '56px',
+  borderRadius: '50%',
+  background: 'rgba(255,255,255,0.8)',
+  transform: 'translate(0,0)',
+  touchAction: 'none'
+});
+joystick.appendChild(knob);
+document.body.appendChild(joystick);
+
+let rect = joystick.getBoundingClientRect();
+let joystickVec = { x: 0, y: 0 };
+
+function handlePointer(x, y) {
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = x - cx;
+  const dy = y - cy;
+  const max = rect.width / 2;
+  const nx = Math.max(-1, Math.min(1, dx / max));
+  const ny = Math.max(-1, Math.min(1, dy / max));
+  knob.style.transform = `translate(${nx*36}px, ${ny*36}px)`;
+  joystickVec.x = nx;
+  joystickVec.y = -ny; // forward is negative screen Y
+}
+
+function releaseJoystick() {
+  knob.style.transform = 'translate(0,0)';
+  joystickVec.x = 0;
+  joystickVec.y = 0;
+}
+
+joystick.addEventListener('touchstart', (e) => { rect = joystick.getBoundingClientRect(); handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+joystick.addEventListener('touchmove', (e) => { handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+joystick.addEventListener('touchend', (e) => { releaseJoystick(); e.preventDefault(); });
+
+// Mouse support for desktop testing
+joystick.addEventListener('pointerdown', (e) => { rect = joystick.getBoundingClientRect(); joystick.setPointerCapture(e.pointerId); handlePointer(e.clientX, e.clientY); });
+joystick.addEventListener('pointermove', (e) => { if (e.buttons) handlePointer(e.clientX, e.clientY); });
+joystick.addEventListener('pointerup', (e) => { releaseJoystick(); try { joystick.releasePointerCapture(e.pointerId); } catch {} });
+
+// --- Move camera directly from joystick vector ---
+engine.runRenderLoop(() => {
+  const dt = engine.getDeltaTime() / 1000; // seconds
+  const speed = joystickSpeed || camera.speed || 1.7;
+  const jx = joystickVec.x;
+  const jy = joystickVec.y;
+  if (Math.abs(jx) > 0.01 || Math.abs(jy) > 0.01) {
+    const forward = camera.getDirection(new BABYLON.Vector3(0,0,1));
+    forward.y = 0; forward.normalize();
+    const right = camera.getDirection(new BABYLON.Vector3(1,0,0));
+    right.y = 0; right.normalize();
+    const move = forward.scale(jy * speed * dt).add(right.scale(jx * speed * dt));
+    try { camera.moveWithCollisions(move); } catch (e) { camera.position.addInPlace(move); }
+  }
+
+  scene.render();
+});
+
+
 // Pointer lock setup
 const pointerSound = new Audio("assets/sound.mp3");
 pointerSound.preload = "auto";
@@ -192,3 +270,4 @@ engine.runRenderLoop(() => {
 });
 
 window.addEventListener("resize", () => engine.resize());
+
