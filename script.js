@@ -227,8 +227,8 @@ centerMarker.material = markMat;
 
 // Thumbnail plane
 const thumbPlane = BABYLON.MeshBuilder.CreatePlane("thumbPlane", { width: 3.6, height: 4.5 }, scene);
-thumbPlane.position = new BABYLON.Vector3(0.5, 4.5 / 2, -roomSize / 1.5 - 2);
-thumbPlane.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
+// thumbPlane.position = new BABYLON.Vector3(0.5, 4.5 / 2, -roomSize / 1.5 - 2);
+// thumbPlane.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
 const thumbMat = new BABYLON.StandardMaterial("thumbMat", scene);
 thumbMat.diffuseTexture = new BABYLON.Texture("assets/cin.webp", scene);
 thumbMat.backFaceCulling = false;
@@ -261,6 +261,16 @@ requestAnimationFrame(() => {
 let prevCamPos = camera.position.clone();
 
 engine.runRenderLoop(() => {
+// Distance from camera and offset height
+const followDistance = 2.2; // how far in front of camera
+const followHeight = -0.3;  // adjust if you want it higher/lower in view
+
+// Update thumbPlane to follow camera
+const forwardVec = camera.getDirection(new BABYLON.Vector3(0, 0, 1));
+thumbPlane.position = camera.position.add(forwardVec.scale(followDistance));
+thumbPlane.position.y += followHeight;
+thumbPlane.lookAt(camera.position, 0, Math.PI, 0); // face camera 
+
   const doorCenter = new BABYLON.Vector3(0, 0, -roomSize / 2);
   const dx = camera.position.x - doorCenter.x;
   const dz = camera.position.z - doorCenter.z;
