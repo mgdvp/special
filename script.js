@@ -227,8 +227,8 @@ centerMarker.material = markMat;
 
 // Thumbnail plane
 const thumbPlane = BABYLON.MeshBuilder.CreatePlane("thumbPlane", { width: 3.6, height: 4.5 }, scene);
-// thumbPlane.position = new BABYLON.Vector3(0.5, 4.5 / 2, -roomSize / 1.5 - 2);
-// thumbPlane.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
+thumbPlane.position = new BABYLON.Vector3(0.5, 4.5 / 2, -roomSize / 1.5 - 2);
+thumbPlane.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
 const thumbMat = new BABYLON.StandardMaterial("thumbMat", scene);
 thumbMat.diffuseTexture = new BABYLON.Texture("assets/cin.webp", scene);
 thumbMat.backFaceCulling = false;
@@ -261,49 +261,30 @@ requestAnimationFrame(() => {
 let prevCamPos = camera.position.clone();
 
 engine.runRenderLoop(() => {
-// --- Kapı açılma vs. mevcut mantık ---
-const doorCenter = new BABYLON.Vector3(0, 0, -roomSize / 2);
-const dx = camera.position.x - doorCenter.x;
-const dz = camera.position.z - doorCenter.z;
-const dist = Math.sqrt(dx * dx + dz * dz);
-const moveVec = camera.position.subtract(prevCamPos);
-const moveLen = moveVec.length();
+  const doorCenter = new BABYLON.Vector3(0, 0, -roomSize / 2);
+  const dx = camera.position.x - doorCenter.x;
+  const dz = camera.position.z - doorCenter.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  const moveVec = camera.position.subtract(prevCamPos);
+  const moveLen = moveVec.length();
 
-if (!isDoorOpen && dist < 4.0) {
-  let shouldOpenInward = moveLen > 0.02 ? moveVec.z > 0 : camera.position.z < doorCenter.z;
-  doorTargetAngle = shouldOpenInward ? openOutward : openInward;
-  isDoorOpen = true;
-  doorSound.play().catch(() => {});
-  subtitle.style.opacity = "1";
-  setTimeout(() => (subtitle.style.opacity = "0"), 2500);
-} else if (isDoorOpen && dist > 5.0) {
-  isDoorOpen = false;
-  doorTargetAngle = 0;
-}
+  if (!isDoorOpen && dist < 4.0) {
+    let shouldOpenInward = moveLen > 0.02 ? moveVec.z > 0 : camera.position.z < doorCenter.z;
+    doorTargetAngle = shouldOpenInward ? openOutward : openInward;
+    isDoorOpen = true;
+    doorSound.play().catch(() => {});
+    subtitle.style.opacity = "1";
+    setTimeout(() => (subtitle.style.opacity = "0"), 2500);
+  } else if (isDoorOpen && dist > 5.0) {
+    isDoorOpen = false;
+    doorTargetAngle = 0;
+  }
 
-doorCurrentAngle += (doorTargetAngle - doorCurrentAngle) * 0.15;
-doorHinge.rotation = new BABYLON.Vector3(0, doorCurrentAngle, 0);
+  doorCurrentAngle += (doorTargetAngle - doorCurrentAngle) * 0.15;
+  doorHinge.rotation = new BABYLON.Vector3(0, doorCurrentAngle, 0);
 
-// --- Kamera arkaya bakıyor mu kontrolü ---
-const followDistance = 2.5;  // kameradan uzaklık
-const followHeight = -0.3;   // yükseklik farkı
+  prevCamPos.copyFrom(camera.position);
+  scene.render();
+});
 
-const forwardVec = camera.getDirection(BABYLON.Axis.Z);
-const angleDeg = Math.atan2(forwardVec.x, forwardVec.z) * 180 / Math.PI;
-
-const lookingBack = Math.abs(Math.abs(angleDeg) - 180) < 30; // 180° ± 30°
-
-if (lookingBack) {
-  const dir = camera.getDirection(new BABYLON.Vector3(0, 0, 1));
-  const newPos = camera.position.add(dir.scale(followDistance));
-  newPos.y += followHeight;
-  thumbPlane.position.copyFrom(newPos);
-  thumbPlane.lookAt(camera.position, 0, Math.PI, 0);
-}
-
-prevCamPos.copyFrom(camera.position);
-scene.render();
-})
-
 window.addEventListener("resize", () => engine.resize());
-
