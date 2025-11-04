@@ -304,13 +304,6 @@ if (lookingBack) {
 prevCamPos.copyFrom(camera.position);
 scene.render();
 })
-
-  doorCurrentAngle += (doorTargetAngle - doorCurrentAngle) * 0.15;
-  doorHinge.rotation = new BABYLON.Vector3(0, doorCurrentAngle, 0);
-
-  prevCamPos.copyFrom(camera.position);
-  scene.render();
-});
-
+
 window.addEventListener("resize", () => engine.resize());
 
