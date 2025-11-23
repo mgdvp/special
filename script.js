@@ -1,4 +1,4 @@
-// FULL CLEANED / FIXED BABYLON JS SCENE
+// FULL SCENE with SINGLE FRONT WALL + TWO DOOR HOLES (CSG)
 // Requires <script src="https://cdn.babylonjs.com/babylon.js"></script>
 
 const canvas = document.getElementById("renderCanvas");
@@ -139,60 +139,64 @@ function createWall(name, width, height, depth, position, rotation) {
   return w;
 }
 
-// Front/back/side walls
+// Back and side walls (keep left/right/back)
 createWall("backWall", roomSize, wallHeight, wallThickness, new BABYLON.Vector3(0, wallHeight / 2, roomSize / 2));
-// --- SINGLE FRONT WALL WITH TWO DOOR HOLES (CSG) ---
-const frontWall = BABYLON.MeshBuilder.CreateBox("frontWall", {
-    width: roomSize,
-    height: wallHeight,
-    depth: wallThickness
-}, scene);
-
-frontWall.position = new BABYLON.Vector3(0, wallHeight / 2, -roomSize / 2);
-frontWall.material = wallMat;
-
-// DOOR SIZES
-const doorWidth = 2;
-const doorWidthCSG = 2;
-const doorHeightCSG = 3;
-const doorThicknessCSG = wallThickness * 2;
-
-// DOOR 1 hole
-const doorHole1 = BABYLON.MeshBuilder.CreateBox("doorHole1", {
-    width: doorWidthCSG,
-    height: doorHeightCSG,
-    depth: doorThicknessCSG
-}, scene);
-doorHole1.position = new BABYLON.Vector3(-doorWidthCSG, doorHeightCSG / 2, -roomSize / 2);
-
-// DOOR 2 hole
-const doorHole2 = BABYLON.MeshBuilder.CreateBox("doorHole2", {
-    width: doorWidthCSG,
-    height: doorHeightCSG,
-    depth: doorThicknessCSG
-}, scene);
-doorHole2.position = new BABYLON.Vector3(doorWidthCSG + 2, doorHeightCSG / 2, -roomSize / 2);
-
-// Run CSG
-const wallCSG = BABYLON.CSG.FromMesh(frontWall);
-const holeCSG1 = BABYLON.CSG.FromMesh(doorHole1);
-const holeCSG2 = BABYLON.CSG.FromMesh(doorHole2);
-
-const finalWall = wallCSG.subtract(holeCSG1).subtract(holeCSG2).toMesh("finalWall", wallMat, scene);
-
-frontWall.dispose();
-doorHole1.dispose();
-doorHole2.dispose();
-
-finalWall.checkCollisions = true;
-finalWall.isPickable = false;
-
 createWall("leftWall", wallThickness, wallHeight, roomSize, new BABYLON.Vector3(-roomSize / 2, wallHeight / 2, 0));
 createWall("rightWall", wallThickness, wallHeight, roomSize, new BABYLON.Vector3(roomSize / 2, wallHeight / 2, 0));
 
 // Door defaults
 const openOutward = -Math.PI / 2;
 const openInward = Math.PI / 2;
+const doorWidth = 2;
+
+// ---------- SINGLE FRONT WALL WITH TWO DOOR HOLES (CSG) ----------
+const frontWall = BABYLON.MeshBuilder.CreateBox("frontWall", {
+  width: roomSize,
+  height: wallHeight,
+  depth: wallThickness
+}, scene);
+frontWall.position = new BABYLON.Vector3(0, wallHeight / 2, -roomSize / 2);
+frontWall.material = wallMat;
+frontWall.checkCollisions = true;
+frontWall.isPickable = false;
+
+// door positions: door1 center at x=0 (matches original), door2 center at secondDoorOffset
+const secondDoorOffset = 4; // same as door placement used elsewhere
+
+const doorWidthCSG = doorWidth;
+const doorHeightCSG = 3;
+const doorThicknessCSG = wallThickness * 2; // make hole a bit deeper than wall
+
+// door hole 1 (centered at x=0)
+const doorHole1 = BABYLON.MeshBuilder.CreateBox("doorHole1", {
+  width: doorWidthCSG,
+  height: doorHeightCSG,
+  depth: doorThicknessCSG
+}, scene);
+doorHole1.position = new BABYLON.Vector3(0, doorHeightCSG / 2, -roomSize / 2);
+
+// door hole 2 (centered at x=secondDoorOffset)
+const doorHole2 = BABYLON.MeshBuilder.CreateBox("doorHole2", {
+  width: doorWidthCSG,
+  height: doorHeightCSG,
+  depth: doorThicknessCSG
+}, scene);
+doorHole2.position = new BABYLON.Vector3(secondDoorOffset, doorHeightCSG / 2, -roomSize / 2);
+
+// Run CSG subtraction: frontWall - hole1 - hole2
+const wallCSG = BABYLON.CSG.FromMesh(frontWall);
+const holeCSG1 = BABYLON.CSG.FromMesh(doorHole1);
+const holeCSG2 = BABYLON.CSG.FromMesh(doorHole2);
+
+const finalWall = wallCSG.subtract(holeCSG1).subtract(holeCSG2).toMesh("finalWall", wallMat, scene);
+
+// cleanup temporary meshes
+frontWall.dispose();
+doorHole1.dispose();
+doorHole2.dispose();
+
+finalWall.checkCollisions = true;
+finalWall.isPickable = false;
 
 // ---------- DOOR 1 (original) ----------
 const doorHinge = new BABYLON.TransformNode("doorHinge", scene);
@@ -212,23 +216,9 @@ let isDoorOpen = false;
 let doorTargetAngle = 0;
 let doorCurrentAngle = 0;
 
-// debug sphere for door 1 center (optional)
-const debugMat = new BABYLON.StandardMaterial("debugMat", scene);
-debugMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
-const doorCenterSphere = BABYLON.MeshBuilder.CreateSphere("doorCenter", { diameter: 0.12 }, scene);
-doorCenterSphere.position = new BABYLON.Vector3(0, 0.12, -roomSize / 2);
-doorCenterSphere.material = debugMat;
-
 // Camera initial pos
 camera.position = new BABYLON.Vector3(0, 2.4, 6);
 camera.setTarget(new BABYLON.Vector3(0, 1.6, -roomSize / 2));
-
-// center marker
-const centerMarker = BABYLON.MeshBuilder.CreateBox("centerBox", { size: 0.2 }, scene);
-centerMarker.position = new BABYLON.Vector3(0, 0.1, 0);
-const markMat = new BABYLON.StandardMaterial("markMat", scene);
-markMat.diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.9);
-centerMarker.material = markMat;
 
 // thumbnail plane (first)
 const thumbPlane = BABYLON.MeshBuilder.CreatePlane("thumbPlane", { width: 3.6, height: 4.5 }, scene);
@@ -240,8 +230,6 @@ thumbMat.backFaceCulling = false;
 thumbPlane.material = thumbMat;
 
 // ---------- DOOR 2 (same room, right of door1) ----------
-const secondDoorOffset = 4; // change to negative to put left
-
 const door2Hinge = new BABYLON.TransformNode("door2Hinge", scene);
 door2Hinge.position = new BABYLON.Vector3(-doorWidth / 2 + secondDoorOffset, 0, -roomSize / 2);
 
@@ -257,24 +245,19 @@ let isDoor2Open = false;
 let door2TargetAngle = 0;
 let door2CurrentAngle = 0;
 
-// thumbnail for door2 (use your uploaded image path if you want)
+// thumbnail for door2 (use uploaded image path)
 const thumbPlane2 = BABYLON.MeshBuilder.CreatePlane("thumbPlane2", { width: 3.6, height: 4.5 }, scene);
 thumbPlane2.position = new BABYLON.Vector3(secondDoorOffset + 1, 4.5 / 2, -roomSize / 1.5 - 2);
 thumbPlane2.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
 
-// Use either your asset file or the uploaded image path.
-// Uploaded image path (you provided) - system will transform path to URL when needed:
-const uploadedImagePath = "/mnt/data/ec06baca-2890-4031-85e7-4d4b79245261.png";
-
-// prefer local asset if exists, otherwise use uploadedImagePath
+// uploaded image (system will transform local path to URL)
+const uploadedImagePath = "/mnt/data/1fd6182d-3de7-4c4f-8c0f-d0a9b1b7f64c.png";
 const thumbMat2 = new BABYLON.StandardMaterial("thumbMat2", scene);
-thumbMat2.diffuseTexture = new BABYLON.Texture("assets/cin2.webp", scene); // fallback
-// If you want to use the uploaded image, uncomment the next line:
-// thumbMat2.diffuseTexture = new BABYLON.Texture(uploadedImagePath, scene);
+thumbMat2.diffuseTexture = new BABYLON.Texture(uploadedImagePath, scene);
 thumbMat2.backFaceCulling = false;
 thumbPlane2.material = thumbMat2;
 
-// subtitle UI (unchanged)
+// subtitle UI
 const subtitle = document.createElement("div");
 subtitle.className = "subtitle";
 subtitle.innerText = "qapıya yaxınlaşma";
@@ -353,7 +336,6 @@ engine.runRenderLoop(() => {
     door2TargetAngle = shouldOpenInward2 ? openOutward : openInward;
     isDoor2Open = true;
     doorSound.play().catch(()=>{});
-    // optional subtitle for second door:
     subtitle.style.opacity = "1";
     setTimeout(() => (subtitle.style.opacity = "0"), 2500);
   } else if (isDoor2Open && dist2 > 5.0) {
@@ -373,5 +355,3 @@ engine.runRenderLoop(() => {
 
 // handle resize
 window.addEventListener("resize", () => engine.resize());
-
-
