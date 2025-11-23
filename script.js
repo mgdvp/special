@@ -141,10 +141,51 @@ function createWall(name, width, height, depth, position, rotation) {
 
 // Front/back/side walls
 createWall("backWall", roomSize, wallHeight, wallThickness, new BABYLON.Vector3(0, wallHeight / 2, roomSize / 2));
-const doorWidth = 2;
-const frontSideWidth = (roomSize - doorWidth) / 2;
-createWall("frontLeft", frontSideWidth, wallHeight, wallThickness, new BABYLON.Vector3(-(doorWidth / 2 + frontSideWidth / 2), wallHeight / 2, -roomSize / 2));
-createWall("frontRight", frontSideWidth, wallHeight, wallThickness, new BABYLON.Vector3((doorWidth / 2 + frontSideWidth / 2), wallHeight / 2, -roomSize / 2));
+// --- SINGLE FRONT WALL WITH TWO DOOR HOLES (CSG) ---
+const frontWall = BABYLON.MeshBuilder.CreateBox("frontWall", {
+    width: roomSize,
+    height: wallHeight,
+    depth: wallThickness
+}, scene);
+
+frontWall.position = new BABYLON.Vector3(0, wallHeight / 2, -roomSize / 2);
+frontWall.material = wallMat;
+
+// DOOR SIZES
+const doorWidthCSG = 2;
+const doorHeightCSG = 3;
+const doorThicknessCSG = wallThickness * 2;
+
+// DOOR 1 hole
+const doorHole1 = BABYLON.MeshBuilder.CreateBox("doorHole1", {
+    width: doorWidthCSG,
+    height: doorHeightCSG,
+    depth: doorThicknessCSG
+}, scene);
+doorHole1.position = new BABYLON.Vector3(-doorWidthCSG, doorHeightCSG / 2, -roomSize / 2);
+
+// DOOR 2 hole
+const doorHole2 = BABYLON.MeshBuilder.CreateBox("doorHole2", {
+    width: doorWidthCSG,
+    height: doorHeightCSG,
+    depth: doorThicknessCSG
+}, scene);
+doorHole2.position = new BABYLON.Vector3(doorWidthCSG + 2, doorHeightCSG / 2, -roomSize / 2);
+
+// Run CSG
+const wallCSG = BABYLON.CSG.FromMesh(frontWall);
+const holeCSG1 = BABYLON.CSG.FromMesh(doorHole1);
+const holeCSG2 = BABYLON.CSG.FromMesh(doorHole2);
+
+const finalWall = wallCSG.subtract(holeCSG1).subtract(holeCSG2).toMesh("finalWall", wallMat, scene);
+
+frontWall.dispose();
+doorHole1.dispose();
+doorHole2.dispose();
+
+finalWall.checkCollisions = true;
+finalWall.isPickable = false;
+
 createWall("leftWall", wallThickness, wallHeight, roomSize, new BABYLON.Vector3(-roomSize / 2, wallHeight / 2, 0));
 createWall("rightWall", wallThickness, wallHeight, roomSize, new BABYLON.Vector3(roomSize / 2, wallHeight / 2, 0));
 
@@ -331,3 +372,4 @@ engine.runRenderLoop(() => {
 
 // handle resize
 window.addEventListener("resize", () => engine.resize());
+
