@@ -253,7 +253,7 @@ thumbPlane2.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
 // uploaded image (system will transform local path to URL)
 const uploadedImagePath = "/mnt/data/1fd6182d-3de7-4c4f-8c0f-d0a9b1b7f64c.png";
 const thumbMat2 = new BABYLON.StandardMaterial("thumbMat2", scene);
-thumbMat2.diffuseTexture = new BABYLON.Texture(uploadedImagePath, scene);
+thumbMat2.diffuseTexture = new BABYLON.Texture("assets/cin2.webp", scene);
 thumbMat2.backFaceCulling = false;
 thumbPlane2.material = thumbMat2;
 
@@ -355,3 +355,4 @@ engine.runRenderLoop(() => {
 
 // handle resize
 window.addEventListener("resize", () => engine.resize());
+
