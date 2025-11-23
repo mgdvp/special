@@ -152,6 +152,7 @@ frontWall.position = new BABYLON.Vector3(0, wallHeight / 2, -roomSize / 2);
 frontWall.material = wallMat;
 
 // DOOR SIZES
+const doorWidth = 2;
 const doorWidthCSG = 2;
 const doorHeightCSG = 3;
 const doorThicknessCSG = wallThickness * 2;
@@ -372,4 +373,5 @@ engine.runRenderLoop(() => {
 
 // handle resize
 window.addEventListener("resize", () => engine.resize());
+
 
