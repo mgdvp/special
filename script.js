@@ -234,6 +234,98 @@ thumbMat.diffuseTexture = new BABYLON.Texture("assets/cin.webp", scene);
 thumbMat.backFaceCulling = false;
 thumbPlane.material = thumbMat;
 
+//
+// === SECOND DOOR SYSTEM ===
+//
+
+// --- Second door wall (same style as first room) ---
+const room2Z = -roomSize - 6; // second room is 6 units deeper
+
+createWall(
+  "secondRoomBackWall",
+  roomSize,
+  wallHeight,
+  wallThickness,
+  new BABYLON.Vector3(0, wallHeight / 2, room2Z)
+);
+
+// Sections left & right of second door
+createWall(
+  "secondFrontLeft",
+  frontSideWidth,
+  wallHeight,
+  wallThickness,
+  new BABYLON.Vector3(-(doorWidth / 2 + frontSideWidth / 2), wallHeight / 2, room2Z)
+);
+
+createWall(
+  "secondFrontRight",
+  frontSideWidth,
+  wallHeight,
+  wallThickness,
+  new BABYLON.Vector3((doorWidth / 2 + frontSideWidth / 2), wallHeight / 2, room2Z)
+);
+
+// --- Second door setup ---
+const door2Hinge = new BABYLON.TransformNode("door2Hinge", scene);
+door2Hinge.position = new BABYLON.Vector3(-doorWidth / 2, 0, room2Z);
+
+const door2 = BABYLON.MeshBuilder.CreateBox(
+  "door2",
+  { width: doorWidth, height: 3, depth: wallThickness },
+  scene
+);
+door2.parent = door2Hinge;
+door2.position = new BABYLON.Vector3(doorWidth / 2, 1.5, 0);
+door2.material = doorMat.clone("door2Mat");
+door2.checkCollisions = true;
+
+let door2Open = false;
+let door2Angle = 0;
+let door2TargetAngle = 0;
+
+// Second poster (cin2.webp)
+const thumbPlane2 = BABYLON.MeshBuilder.CreatePlane(
+  "thumbPlane2",
+  { width: 3.6, height: 4.5 },
+  scene
+);
+thumbPlane2.position = new BABYLON.Vector3(0.5, 4.5 / 2, room2Z - 2.5);
+thumbPlane2.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
+
+const thumbMat2 = new BABYLON.StandardMaterial("thumbMat2", scene);
+thumbMat2.diffuseTexture = new BABYLON.Texture("assets/cin2.webp", scene);
+thumbMat2.backFaceCulling = false;
+thumbPlane2.material = thumbMat2;
+
+
+// --- Add second door to render loop ---
+scene.onBeforeRenderObservable.add(() => {
+
+  const doorCenter2 = new BABYLON.Vector3(0, 0, room2Z);
+  const dx2 = camera.position.x - doorCenter2.x;
+  const dz2 = camera.position.z - doorCenter2.z;
+  const dist2 = Math.sqrt(dx2 * dx2 + dz2 * dz2);
+
+  if (!door2Open && dist2 < 4.0) {
+    // Determine direction
+    let mv = camera.position.subtract(prevCamPos);
+    let openIn = mv.z > 0;
+
+    door2TargetAngle = openIn ? openOutward : openInward;
+    door2Open = true;
+    doorSound.play().catch(() => {});
+  }
+  else if (door2Open && dist2 > 5.5) {
+    door2Open = false;
+    door2TargetAngle = 0;
+  }
+
+  door2Angle += (door2TargetAngle - door2Angle) * 0.15;
+  door2Hinge.rotation = new BABYLON.Vector3(0, door2Angle, 0);
+});
+
+
 // Subtitle UI
 const subtitle = document.createElement("div");
 subtitle.className = "subtitle";
@@ -288,3 +380,4 @@ engine.runRenderLoop(() => {
 });
 
 window.addEventListener("resize", () => engine.resize());
+
