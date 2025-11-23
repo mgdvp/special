@@ -368,10 +368,95 @@ engine.runRenderLoop(() => {
   doorCurrentAngle += (doorTargetAngle - doorCurrentAngle) * 0.15;
   doorHinge.rotation = new BABYLON.Vector3(0, doorCurrentAngle, 0);
 
+  //
+// === SECOND DOOR IN SAME ROOM (no new walls) ===
+//
+
+// Place second door 4 units to the right of first door
+const secondDoorOffset = 4;
+
+// --- Second door hinge ---
+const door2Hinge = new BABYLON.TransformNode("door2Hinge", scene);
+door2Hinge.position = new BABYLON.Vector3(
+  -doorWidth / 2 + secondDoorOffset,
+  0,
+  -roomSize / 2
+);
+
+// --- Second door mesh ---
+const door2 = BABYLON.MeshBuilder.CreateBox(
+  "door2",
+  { width: doorWidth, height: 3, depth: wallThickness },
+  scene
+);
+door2.parent = door2Hinge;
+door2.position = new BABYLON.Vector3(doorWidth / 2, 1.5, 0.01);
+door2.material = doorMat.clone("door2Mat");
+door2.checkCollisions = true;
+
+// Door state
+let isDoor2Open = false;
+let door2CurrentAngle = 0;
+let door2TargetAngle = 0;
+
+// Poster (cin2.webp) next to second door
+const thumbPlane2 = BABYLON.MeshBuilder.CreatePlane(
+  "thumbPlane2",
+  { width: 3.6, height: 4.5 },
+  scene
+);
+thumbPlane2.position = new BABYLON.Vector3(
+  secondDoorOffset + 1,
+  4.5 / 2,
+  -roomSize / 1.5 - 2
+);
+thumbPlane2.rotation = new BABYLON.Vector3(Math.PI, 0, Math.PI);
+
+const thumbMat2 = new BABYLON.StandardMaterial("thumbMat2", scene);
+thumbMat2.diffuseTexture = new BABYLON.Texture("assets/cin2.webp", scene);
+thumbMat2.backFaceCulling = false;
+thumbPlane2.material = thumbMat2;
+
+
+// --- Second door logic (added to render loop) ---
+scene.onBeforeRenderObservable.add(() => {
+  const doorCenter2 = new BABYLON.Vector3(
+    secondDoorOffset,
+    0,
+    -roomSize / 2
+  );
+
+  const dx = camera.position.x - doorCenter2.x;
+  const dz = camera.position.z - doorCenter2.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+
+  const moveVec = camera.position.subtract(prevCamPos);
+  const moveLen = moveVec.length();
+
+  if (!isDoor2Open && dist < 4.0) {
+    let shouldOpenInward =
+      moveLen > 0.02 ? moveVec.z > 0 : camera.position.z < doorCenter2.z;
+
+    door2TargetAngle = shouldOpenInward ? openOutward : openInward;
+    isDoor2Open = true;
+
+    doorSound.play().catch(() => {});
+  } 
+  else if (isDoor2Open && dist > 5.0) {
+    isDoor2Open = false;
+    door2TargetAngle = 0;
+  }
+
+  door2CurrentAngle += (door2TargetAngle - door2CurrentAngle) * 0.15;
+  door2Hinge.rotation = new BABYLON.Vector3(0, door2CurrentAngle, 0);
+});
+
+
   prevCamPos.copyFrom(camera.position);
   scene.render();
 });
 
 window.addEventListener("resize", () => engine.resize());
+
 
 
